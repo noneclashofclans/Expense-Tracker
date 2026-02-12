@@ -1,0 +1,137 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f5f5f5;
+}
+
+.landing-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  text-align: center;
+  background: linear-gradient(135deg, #f9f9f9, #e0f7fa);
+  animation: bgMove 10s ease-in-out infinite alternate;
+}
+
+@keyframes bgMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+
+.donut-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.donut {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: floatDonut linear infinite;
+}
+
+.donut::before {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  top: 50%;
+  left: 50%;
+  background: #f5f5f5;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.donut:nth-child(1) { background: radial-gradient(circle at 20% 20%, #ff99cc, #ff6699); left: 10%; animation-duration: 10s; animation-delay: 0s; }
+.donut:nth-child(2) { background: radial-gradient(circle at 20% 20%, #ffcc66, #ff9900); left: 30%; animation-duration: 12s; animation-delay: 2s; }
+.donut:nth-child(3) { background: radial-gradient(circle at 20% 20%, #66ccff, #3399ff); left: 50%; animation-duration: 14s; animation-delay: 4s; }
+.donut:nth-child(4) { background: radial-gradient(circle at 20% 20%, #99ff99, #33cc33); left: 70%; animation-duration: 11s; animation-delay: 1s; }
+.donut:nth-child(5) { background: radial-gradient(circle at 20% 20%, #ff66ff, #cc33cc); left: 85%; animation-duration: 13s; animation-delay: 3s; }
+
+@keyframes floatDonut {
+  0% { transform: translateY(100vh) rotate(0deg); }
+  50% { transform: translateY(50vh) rotate(180deg); }
+  100% { transform: translateY(-50px) rotate(360deg); }
+}
+
+
+
+.landing-container h1 {
+  font-size: 3rem;
+  color: #007bff;
+  margin-bottom: 15px;
+  opacity: 0;
+  transform: translateY(-30px);
+  animation: fadeSlideDown 1s forwards 0.2s;
+}
+
+.landing-container h4 {
+  font-size: 1.1rem;
+  color: #046f6c;
+  margin-bottom: 15px;
+  opacity: 0;
+  transform: translateY(-30px);
+  animation: fadeSlideDown 1s forwards 0.2s;
+}
+
+.landing-container p {
+  font-size: 1.2rem;
+  color: #444;
+  margin-bottom: 30px;
+  opacity: 0;
+  transform: translateY(-20px);
+  animation: fadeSlideDown 1s forwards 0.5s;
+}
+
+@keyframes fadeSlideDown {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.landing-buttons {
+  display: flex;
+  gap: 20px;
+  opacity: 0;
+  transform: scale(0.8);
+  animation: fadeScaleUp 0.8s forwards 0.8s;
+}
+
+@keyframes fadeScaleUp {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.btn {
+  text-decoration: none;
+  padding: 12px 25px;
+  background-color: #007bff;
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  background-color: #0056b3;
+  color: white;
+  box-shadow: 0 6px 20px rgba(128, 128, 128, 0.253);
+}
