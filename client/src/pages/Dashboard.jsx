@@ -3,6 +3,93 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 
+const parseMessage = (message) => {
+    if (!message || typeof message !== 'string') {
+        throw new Error('Invalid message');
+    }
+
+    const msg = message.trim();
+
+    const creditKeywords = /credited|received|deposited|added|money received/i;
+    const debitKeywords = /debited|paid|spent|sent|towards|payment to/i;
+
+    let type = null;
+    if (creditKeywords.test(msg)) {
+        type = 'Credit';
+    } else if (debitKeywords.test(msg)) {
+        type = 'Debit';
+    } else {
+        throw new Error('Could not determine transaction type');
+    }
+
+    const amountPatterns = [
+        /(?:Rs\.?\s?|INR\s?)([\d,]+\.?\d*)/i,
+        /(?:amounting to|amount)\s*(?:Rs\.?\s?|INR\s?)?([\d,]+\.?\d*)/i
+    ];
+
+    let amount = null;
+    for (const pattern of amountPatterns) {
+        const match = msg.match(pattern);
+        if (match) {
+            amount = parseFloat(match[1].replace(/,/g, ''));
+            break;
+        }
+    }
+
+    if (!amount || isNaN(amount) || amount <= 0) {
+        throw new Error('Could not extract valid amount');
+    }
+
+    let entity = 'Unknown Merchant';
+
+    if (type === 'Debit') {
+        const debitPatterns = [
+            /(?:payment to|paid to|to)\s+([A-Z\s@.]+?)(?:\s+(?:on|at|date|rrn|ref|vpa))/i,
+            /towards\s+(?:vpa\s+)?([a-z0-9._-]+@[a-z]+)/i,
+            /towards\s+([A-Z\s]+?)(?:\s+(?:on|at|date|rrn|ref))/i,
+            /(?:to|vpa)\s+([a-z0-9._-]+@[a-z]+)/i,
+            /\s+to\s+([^\s]+(?:\s+[A-Z]+)?)/i
+        ];
+
+        for (const pattern of debitPatterns) {
+            const match = msg.match(pattern);
+            if (match && match[1]) {
+                entity = match[1].trim();
+                break;
+            }
+        }
+    }
+
+    if (type === 'Credit') {
+        const creditPatterns = [
+            /from\s+([A-Z\s@.]+?)(?:\s+(?:on|at|date|rrn|ref))/i,
+            /from\s+(?:vpa\s+)?([a-z0-9._-]+@[a-z]+)/i,
+            /by\s+([A-Z\s]+?)(?:\s+(?:on|at|date|rrn|ref))/i,
+            /from\s+([a-z0-9._-]+@[a-z]+)/i,
+            /from\s+([^\s]+(?:\s+[A-Z]+)?)/i
+        ];
+
+        for (const pattern of creditPatterns) {
+            const match = msg.match(pattern);
+            if (match && match[1]) {
+                entity = match[1].trim();
+                break;
+            }
+        }
+    }
+
+    entity = entity
+        .replace(/\s+/g, ' ')
+        .replace(/^(VPA|vpa)\s+/i, '')
+        .trim();
+
+    return {
+        type,
+        amount,
+        entity
+    };
+};
+
 const Dashboard = () => {
     const [user, setUser] = useState(null);
     const [expenses, setExpenses] = useState([]);
@@ -29,7 +116,6 @@ const Dashboard = () => {
 
     const fetchExpenses = async (phoneNumber) => {
         try {
-            
             const res = await axios.get(`https://expense-tracker-back-ac9z.onrender.com/api/expenses/${phoneNumber}`);
             setExpenses(res.data);
             setLoading(false);
@@ -56,63 +142,24 @@ const Dashboard = () => {
         }
 
         try {
-            const isCredited = /credited by/i.test(upiMessage);
-            const isDebited = /debited by/i.test(upiMessage);
-
-            if (!isCredited && !isDebited) {
-                return alert("Could not parse the message. Make sure it's a UPI transaction message.");
-            }
-
-            let amount, sender, transactionType;
-
-            if (isCredited) {
-                const creditRegex = /credited by Rs\.?\s*([\d,.]+)\s*from\s*([^\s.]+@[a-z]+)/i;
-                const match = upiMessage.match(creditRegex);
-                
-                if (!match) {
-                    return alert("Could not parse credit transaction. Check message format.");
-                }
-                
-                amount = parseFloat(match[1].replace(/,/g, ''));
-                sender = match[2];
-                transactionType = "Credit";
-            } else {
-                const debitRegex = /debited by Rs\.?\s*([\d,.]+)\s*towards\s*([^\s.]+@[a-z]+)/i;
-                const match = upiMessage.match(debitRegex);
-                
-                if (!match) {
-                    return alert("Could not parse debit transaction. Check message format.");
-                }
-                
-                amount = parseFloat(match[1].replace(/,/g, ''));
-                sender = match[2];
-                transactionType = "Debit";
-            }
-
-            console.log("Parsed:", { amount, sender, transactionType });
-
-            if (isNaN(amount) || amount <= 0) {
-                return alert("Invalid amount detected!");
-            }
-
-            const title = isCredited 
-                ? `💰 Received from ${sender}` 
-                : `💸 Paid to ${sender}`;
+            const parsed = parseMessage(upiMessage);
             
-            const category = transactionType;
-            const date = new Date();
+            console.log("Parsed:", parsed);
 
+            const title = parsed.type === 'Credit' 
+                ? `💰 Received from ${parsed.entity}` 
+                : `💸 Paid to ${parsed.entity}`;
+            
             const payload = {
                 title,
-                amount,
-                category,
-                date,
+                amount: parsed.amount,
+                category: parsed.type,
+                date: new Date(),
                 userPhone: userPhone
             };
 
             console.log("Sending payload:", payload);
 
-            
             const res = await axios.post("https://expense-tracker-back-ac9z.onrender.com/api/expenses", payload);
 
             setExpenses([res.data, ...expenses]);
@@ -121,15 +168,13 @@ const Dashboard = () => {
             setShowGraph(true);
             setTimeout(() => setShowGraph(false), 5000);
             
-            alert(`${transactionType} transaction added successfully!`);
+            alert(`${parsed.type} transaction added successfully!`);
         } catch (err) {
             console.error("Error parsing/pasting expense:", err);
-            console.error("Error response:", err.response?.data);
-            alert(`Failed to add transaction: ${err.response?.data?.message || err.message}`);
+            alert(`Failed to parse transaction: ${err.message}`);
         }
     };
 
-    
     const getMonthlyData = () => {
         const monthlyStats = {};
         
@@ -151,7 +196,7 @@ const Dashboard = () => {
         
         return Object.entries(monthlyStats)
             .sort((a, b) => new Date(a[0]) - new Date(b[0]))
-            .slice(-6); // Last 6 months
+            .slice(-6);
     };
 
     const monthlyData = getMonthlyData();
@@ -183,7 +228,6 @@ const Dashboard = () => {
                 </button>
             </div>
 
-            {/* Monthly Graph */}
             {showGraph && monthlyData.length > 0 && (
                 <div 
                     className="card mb-4" 
@@ -206,7 +250,6 @@ const Dashboard = () => {
                             {monthlyData.map(([month, data]) => (
                                 <div key={month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                     <div style={{ display: 'flex', gap: '5px', alignItems: 'flex-end', height: '200px' }}>
-                                        {/* Credit Bar */}
                                         <div
                                             style={{
                                                 width: '30px',
