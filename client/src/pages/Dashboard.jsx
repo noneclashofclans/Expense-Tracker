@@ -29,7 +29,8 @@ const Dashboard = () => {
 
     const fetchExpenses = async (phoneNumber) => {
         try {
-            const res = await axios.get(`http://localhost:5000/api/expenses/${phoneNumber}`);
+            
+            const res = await axios.get(`https://expense-tracker-back-ac9z.onrender.com/api/expenses/${phoneNumber}`);
             setExpenses(res.data);
             setLoading(false);
         } catch (err) {
@@ -111,7 +112,8 @@ const Dashboard = () => {
 
             console.log("Sending payload:", payload);
 
-            const res = await axios.post("http://localhost:5000/api/expenses", payload);
+            
+            const res = await axios.post("https://expense-tracker-back-ac9z.onrender.com/api/expenses", payload);
 
             setExpenses([res.data, ...expenses]);
             setUpiMessage("");
@@ -127,7 +129,7 @@ const Dashboard = () => {
         }
     };
 
-    // Calculate monthly data
+    
     const getMonthlyData = () => {
         const monthlyStats = {};
         
